@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# タグがpushされるかチェック
+while read local_ref local_sha remote_ref remote_sha
+do
+    if [[ $local_ref == refs/tags/* ]]; then
+        TAG=${local_ref#refs/tags/}
+        echo "🔄 Detected tag push: $TAG"
+        echo "🔄 Pushing to BSR..."
+
+        buf push --tag $TAG
+
+        if [ $? -eq 0 ]; then
+            echo "✅ BSR push successful: $TAG"
+        else
+            echo "⚠️  BSR push failed (continuing with git push)"
+            # exit 1 でgit pushを中止することもできます
+        fi
+    fi
+done
+
+exit 0
