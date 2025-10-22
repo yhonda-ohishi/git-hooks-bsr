@@ -8,7 +8,7 @@ do
         echo "🔄 Detected tag push: $TAG"
         echo "🔄 Pushing to BSR..."
 
-        buf push --tag $TAG
+        buf push --label $TAG
 
         if [ $? -eq 0 ]; then
             echo "✅ BSR push successful: $TAG"
