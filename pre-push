@@ -6,8 +6,9 @@ do
     if [[ $local_ref == refs/tags/* ]]; then
         TAG=${local_ref#refs/tags/}
         echo "🔄 Detected tag push: $TAG"
-        echo "🔄 Pushing to BSR..."
 
+        # BSR push
+        echo "🔄 Pushing to BSR..."
         buf push --label $TAG
 
         if [ $? -eq 0 ]; then
@@ -15,6 +16,40 @@ do
         else
             echo "⚠️  BSR push failed (continuing with git push)"
             # exit 1 でgit pushを中止することもできます
+        fi
+
+        # Release binary build
+        echo "🔄 Building release binary..."
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
+          -o "etc_meisai_scraper-$TAG-windows-amd64.exe" \
+          -ldflags="-s -w -X main.Version=$TAG" \
+          .
+
+        if [ $? -eq 0 ]; then
+            echo "✅ Release binary build successful: $TAG"
+            echo "📦 Binary: etc_meisai_scraper-$TAG-windows-amd64.exe"
+
+            # Create GitHub Release
+            echo "🔄 Creating GitHub Release..."
+            gh release create $TAG \
+                etc_meisai_scraper-$TAG-windows-amd64.exe \
+                --repo yhonda-ohishi-pub-dev/etc_meisai_scraper \
+                --title "$TAG" \
+                --notes "Release $TAG" \
+                --latest
+
+            if [ $? -eq 0 ]; then
+                echo "✅ GitHub Release created: $TAG"
+
+                # Clean up local build files
+                echo "🧹 Cleaning up local build files..."
+                rm -f etc_meisai_scraper-$TAG-windows-amd64.exe
+                echo "✅ Cleanup completed"
+            else
+                echo "⚠️  GitHub Release creation failed (continuing with git push)"
+            fi
+        else
+            echo "⚠️  Release binary build failed (continuing with git push)"
         fi
     fi
 done
